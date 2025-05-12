@@ -12,6 +12,8 @@ const OSC_PORT = 9022;
 
 let accessToken = '';
 let streamList = [];
+let streamMap = {};
+
 let currentStreamIndex = 0;
 
 const oscServer = new Server(OSC_PORT, '0.0.0.0', () => {
@@ -22,9 +24,12 @@ oscServer.on('message', function (msg) {
   const address = msg[0];  
   console.log('OSC message received:', address, msg);
 
-  if (address === "/kiloview/setInput/A") {
-    setNextOutput();
+  const match = address.match(/^\/kiloview\/setInput\/(\d)$/);
+  if (match) {
+    const index = parseInt(match[1]);
+    setOutputByNumber(index);
   }
+
 });
 
 app.get('/api/test', (req, res) => {
@@ -51,7 +56,7 @@ app.listen(PORT, async () => {
 });
 
 async function login() {
-  const res = await axios.post('http://10.5.1.48/api/users/login', {
+  const res = await axios.post('http://10.5.1.30/api/users/login', {
     username: 'test',
     password: 'test'
   }, {
@@ -66,7 +71,7 @@ async function login() {
 }
 
 async function getSources() {
-  const res = await axios.post('http://10.5.1.48/api/source/groups/list', {
+  const res = await axios.post('http://10.5.1.30/api/source/groups/list', {
     is_need_stream: true
   }, {
     headers: {
@@ -76,11 +81,14 @@ async function getSources() {
   });
 
   const sources = res.data.data;
+  let count = 1;
 
   for (const group of sources) {
     for (const stream of group.streams) {
-      if (stream.enable === 1) {
+      if (stream.enable === 1 && count <= 4) {
         streamList.push(stream);
+        streamMap[count] = stream;
+        count++;
       }
     }
   }
@@ -89,7 +97,7 @@ async function getSources() {
 }
 
 async function registerSourceForPreview(stream) {
-  await axios.post('http://10.5.1.48/api/preview/source/modify', {
+  await axios.post('http://10.5.1.30/api/preview/source/modify', {
     from: {
       type: "source",
       stream_id: stream.id,
@@ -117,24 +125,25 @@ async function registerSourceForPreview(stream) {
   console.log(`Stream ${stream.name} registered for preview.`);
 }
 
-async function setNextOutput() {
-  if (streamList.length === 0) {
-    console.log("No streams available.");
+
+async function setOutputByNumber(index) {
+  const stream = streamMap[index];
+  if (!stream) {
+    console.log(`Stream ${index} not found.`);
     return;
   }
 
-  const stream = streamList[currentStreamIndex];
-
-  await registerSourceForPreview(stream);
-  await setOutput(stream);
-
-  console.log(`Switched to stream ${stream.name}`);
-
-  currentStreamIndex = (currentStreamIndex + 1) % streamList.length;
+  try {
+    await registerSourceForPreview(stream);
+    await setOutput(stream);
+    console.log(`Switched to stream ${stream.name}`);
+  } catch (err) {
+    console.error(`Failed to switch to stream ${index}:`, err);
+  }
 }
 
 async function setOutput(stream) {
-  await axios.post('http://10.5.1.48/api/output/source/set', {
+  await axios.post('http://10.5.1.30/api/output/source/set', {
     from: {
       output_id: "1",
       pos_id: 1
