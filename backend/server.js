@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
 const { Server } = require('node-osc');
-
+const config = require('./config.json');
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -56,9 +56,9 @@ app.listen(PORT, async () => {
 });
 
 async function login() {
-  const res = await axios.post('http://10.5.1.30/api/users/login', {
-    username: 'test',
-    password: 'test'
+  const res = await axios.post(`http://${config.ip}/api/users/login`, {
+    username: config.username,
+    password: config.password
   }, {
     headers: {
       'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ async function login() {
 }
 
 async function getSources() {
-  const res = await axios.post('http://10.5.1.30/api/source/groups/list', {
+  const res = await axios.post(`http://${config.ip}/api/source/groups/list`, {
     is_need_stream: true
   }, {
     headers: {
@@ -97,7 +97,7 @@ async function getSources() {
 }
 
 async function registerSourceForPreview(stream) {
-  await axios.post('http://10.5.1.30/api/preview/source/modify', {
+  await axios.post(`http://${config.ip}/api/preview/source/modify`, {
     from: {
       type: "source",
       stream_id: stream.id,
@@ -143,7 +143,7 @@ async function setOutputByNumber(index) {
 }
 
 async function setOutput(stream) {
-  await axios.post('http://10.5.1.30/api/output/source/set', {
+  await axios.post(`http://${config.ip}/api/output/source/set`, {
     from: {
       output_id: "1",
       pos_id: 1
