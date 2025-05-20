@@ -85,11 +85,12 @@ async function getSources() {
 
   for (const group of sources) {
     for (const stream of group.streams) {
-      if (stream.enable === 1 && count <= 4) {
+      if (count <= 4) {
         streamList.push(stream);
         streamMap[count] = stream;
         count++;
       }
+      // console.log(stream)
     }
   }
 
